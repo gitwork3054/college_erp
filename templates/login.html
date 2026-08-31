@@ -26,7 +26,7 @@
 
     <section class="login-card">
       <div class="mobile-logo"><img src="{{ url_for('static', filename='logo.jpg') }}" alt="College logo"></div>
-      <h2>Welcome Back</h2>
+      <h2>Welcome!</h2>
       <p class="muted">Sign in to access the College ERP dashboard.</p>
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}
