@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>College ERP | Secure Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="brand-panel">
+      <div>
+        <span class="eyebrow">COLLEGE MANAGEMENT SYSTEM</span>
+        <div class="brand-lockup">
+          <img src="{{ url_for('static', filename='logo.jpg') }}" alt="College logo">
+          <div><h1>College ERP</h1><p>Centralized academic and administrative operations.</p></div>
+        </div>
+        <div class="features">
+          <div><span>✓</span><p><strong>Department Management</strong><br>Connect all departments through one secure platform.</p></div>
+          <div><span>✓</span><p><strong>Complaints & Inventory</strong><br>Track requests, priorities and approvals in real time.</p></div>
+          <div><span>✓</span><p><strong>Role-based Access</strong><br>Dedicated dashboards for the Dean and every HOD.</p></div>
+        </div>
+      </div>
+      <small>SECURE • RELIABLE • CENTRALIZED<br>Powered by Techfinitys</small>
+    </section>
+
+    <section class="login-card">
+      <div class="mobile-logo"><img src="{{ url_for('static', filename='logo.jpg') }}" alt="College logo"></div>
+      <h2>Welcome Back</h2>
+      <p class="muted">Sign in to access the College ERP dashboard.</p>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}
+      {% endwith %}
+      <form method="post">
+        <label>Username</label>
+        <input id="username" name="username" autocomplete="username" placeholder="Enter your username" required>
+        <label>Password</label>
+        <div class="password-wrap">
+          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
+          <button type="button" class="eye" onclick="togglePassword()">Show</button>
+        </div>
+        <div class="form-row"><label class="remember"><input type="checkbox"> Remember me</label><button type="button" class="link" onclick="alert('Please contact the system administrator to reset your password.')">Forgot password?</button></div>
+        <button class="primary" type="submit">Sign In Securely</button>
+      </form>
+      <div class="demo-hint"><strong>Demo access</strong><br>Dean: <code>dean</code> &nbsp; HOD: <code>hod_hospital</code><br>Password: <code>1234</code></div>
+      <p class="security">🔒 Your session is protected. Version 1.0</p>
+    </section>
+  </main>
+  <script>function togglePassword(){const p=document.getElementById('password');const b=document.querySelector('.eye');p.type=p.type==='password'?'text':'password';b.textContent=p.type==='password'?'Show':'Hide'}</script>
+</body>
+</html>
