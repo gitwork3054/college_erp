@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>College ERP | {{ user.role }} Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="app-page">
+  {% macro complaints_table(rows) %}<div class="table-wrap"><table><thead><tr><th>Complaint ID</th><th>Department</th><th>Category</th><th>Subject</th><th>Priority</th><th>Status</th><th>Date</th></tr></thead><tbody>{% for item in rows %}<tr><td><strong>{{ item.id }}</strong></td><td>{{ item.department }}</td><td>{{ item.category }}</td><td>{{ item.subject }}</td><td><span class="pill priority-{{ item.priority|lower }}">{{ item.priority }}</span></td><td><span class="pill status-{{ item.status|lower|replace(' ','-') }}">{{ item.status }}</span></td><td>{{ item.date }}</td></tr>{% endfor %}</tbody></table></div>{% endmacro %}
+  <aside class="sidebar">
+    <div class="sidebar-brand"><img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo"><div><strong>College ERP</strong><small>Management System</small></div></div>
+    <span class="menu-title">MAIN MENU</span>
+    <button class="nav active" data-page="overview">▦ &nbsp; Dashboard</button>
+    <button class="nav" data-page="complaints">▤ &nbsp; Complaints</button>
+    <button class="nav" data-page="inventory">▣ &nbsp; Inventory Requests</button>
+    <span class="menu-title">MANAGEMENT</span>
+    <button class="nav" data-page="reports">▥ &nbsp; Reports</button>
+    {% if user.role == 'Dean' %}<button class="nav" data-page="departments">⌂ &nbsp; Departments</button>{% endif %}
+    <a class="nav logout" href="{{ url_for('logout') }}">↪ &nbsp; Logout</a>
+  </aside>
+
+  <main class="workspace">
+    <header class="topbar">
+      <div><h1 id="page-title">{{ user.role }} Dashboard</h1><p id="page-subtitle">Overview of college operations and recent activity.</p></div>
+      <div class="top-actions"><span id="clock"></span><span class="role-badge {{ 'hod' if user.role == 'HOD' else '' }}">{{ user.role }}{% if user.department %} • {{ user.department }}{% endif %}</span></div>
+    </header>
+
+    <section id="overview" class="page active-page">
+      <div class="welcome"><div><span>WELCOME BACK</span><h2>{{ user.name }}</h2><p>{% if user.role == 'Dean' %}Monitor requests and activities across all departments.{% else %}Manage requests and activities for {{ user.department }}.{% endif %}</p></div><div class="welcome-mark">ERP</div></div>
+      <div class="stats">
+        <article><span class="icon blue">▤</span><div><small>Total Complaints</small><strong>{{ complaints|length }}</strong></div></article>
+        <article><span class="icon amber">!</span><div><small>Pending</small><strong>{{ complaints|selectattr('status','equalto','Pending')|list|length }}</strong></div></article>
+        <article><span class="icon green">✓</span><div><small>Resolved</small><strong>{{ complaints|selectattr('status','equalto','Resolved')|list|length }}</strong></div></article>
+        <article><span class="icon purple">▣</span><div><small>Inventory Requests</small><strong>{{ inventory|length }}</strong></div></article>
+      </div>
+      <div class="panel"><div class="section-head"><div><h2>Recent Complaints</h2><p>Latest complaint activity available to your role.</p></div><button class="secondary jump" data-page="complaints">View All</button></div>{{ complaints_table(complaints[:4]) }}</div>
+    </section>
+
+    <section id="complaints" class="page">
+      <div class="panel"><div class="section-head"><div><h2>Complaints</h2><p>Track department complaints, priorities and progress.</p></div><button class="primary small" onclick="openModal('complaint-modal')">+ New Complaint</button></div>{{ complaints_table(complaints) }}</div>
+    </section>
+
+    <section id="inventory" class="page">
+      <div class="panel"><div class="section-head"><div><h2>Inventory Requests</h2><p>Review inventory needs and current request status.</p></div><button class="primary small" onclick="openModal('inventory-modal')">+ New Request</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Request ID</th><th>Department</th><th>Item</th><th>Quantity</th><th>Priority</th><th>Status</th></tr></thead><tbody>{% for item in inventory %}<tr><td><strong>{{ item.id }}</strong></td><td>{{ item.department }}</td><td>{{ item.item }}</td><td>{{ item.quantity }}</td><td><span class="pill priority-{{ item.priority|lower }}">{{ item.priority }}</span></td><td><span class="pill status-{{ item.status|lower|replace(' ','-') }}">{{ item.status }}</span></td></tr>{% endfor %}</tbody></table></div>
+      </div>
+    </section>
+
+    <section id="reports" class="page"><div class="panel"><div class="section-head"><div><h2>Reports</h2><p>Summary of visible complaints and inventory requests.</p></div><button class="secondary" onclick="window.print()">Export Report</button></div><div class="report-grid"><article><small>Complaint Resolution</small><strong>{{ ((complaints|selectattr('status','equalto','Resolved')|list|length / complaints|length * 100) if complaints else 0)|round|int }}%</strong><div class="bar"><i style="width:{{ ((complaints|selectattr('status','equalto','Resolved')|list|length / complaints|length * 100) if complaints else 0)|round|int }}%"></i></div></article><article><small>Inventory Approval</small><strong>{{ inventory|selectattr('status','equalto','Approved')|list|length }} approved</strong><p>From {{ inventory|length }} visible requests</p></article><article><small>Departments Covered</small><strong>{% if user.role == 'Dean' %}{{ departments|length }}{% else %}1{% endif %}</strong><p>Role-based visibility enabled</p></article></div></div></section>
+
+    {% if user.role == 'Dean' %}<section id="departments" class="page"><div class="panel"><div class="section-head"><div><h2>Departments</h2><p>College-wide department overview.</p></div></div><div class="department-grid">{% for dep in departments %}<article><span>{{ dep[0] }}</span><div><strong>{{ dep }}</strong><small>{{ complaints|selectattr('department','equalto',dep)|list|length }} complaints • {{ inventory|selectattr('department','equalto',dep)|list|length }} requests</small></div></article>{% endfor %}</div></div></section>{% endif %}
+  </main>
+
+  <div id="complaint-modal" class="modal"><div class="modal-card"><button class="close" onclick="closeModal('complaint-modal')">×</button><h2>Create Complaint</h2><p>This temporary showcase keeps new entries only in the current browser session.</p><form onsubmit="demoSubmit(event,'Complaint created for demonstration.')"><label>Subject</label><input required placeholder="Enter complaint subject"><label>Priority</label><select><option>Medium</option><option>High</option><option>Urgent</option></select><label>Description</label><textarea required placeholder="Describe the complaint"></textarea><button class="primary" type="submit">Create Complaint</button></form></div></div>
+  <div id="inventory-modal" class="modal"><div class="modal-card"><button class="close" onclick="closeModal('inventory-modal')">×</button><h2>Create Inventory Request</h2><p>This temporary showcase keeps new entries only in the current browser session.</p><form onsubmit="demoSubmit(event,'Inventory request created for demonstration.')"><label>Item</label><input required placeholder="Enter item name"><label>Quantity</label><input required type="number" min="1" placeholder="Quantity"><label>Reason</label><textarea required placeholder="Reason for request"></textarea><button class="primary" type="submit">Create Request</button></form></div></div>
+  <div id="toast" class="toast"></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
