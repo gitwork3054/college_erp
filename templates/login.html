@@ -26,7 +26,7 @@
 
     <section class="login-card">
       <div class="mobile-logo"><img src="{{ url_for('static', filename='logo.jpg') }}" alt="College logo"></div>
-      <h2>Welcome!</h2>
+      <h2>Welcome Back</h2>
       <p class="muted">Sign in to access the College ERP dashboard.</p>
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}
@@ -42,7 +42,18 @@
         <div class="form-row"><label class="remember"><input type="checkbox"> Remember me</label><button type="button" class="link" onclick="alert('Please contact the system administrator to reset your password.')">Forgot password?</button></div>
         <button class="primary" type="submit">Sign In Securely</button>
       </form>
-      <div class="demo-hint"><strong>Demo access</strong><br>Dean: <code>dean</code> &nbsp; HOD: <code>hod_hospital</code><br>Password: <code>1234</code></div>
+      <div class="demo-hint">
+        <strong>Demo access</strong>
+        <div class="demo-users">
+          <span>Dean</span><code>dean</code>
+          <span>Hospital HOD</span><code>hod_hospital</code>
+          <span>Computer HOD</span><code>hod_computer</code>
+          <span>Mechanical HOD</span><code>hod_mechanical</code>
+          <span>Electrical HOD</span><code>hod_electrical</code>
+          <span>Civil HOD</span><code>hod_civil</code>
+        </div>
+        <div class="demo-password">Password for all accounts: <code>1234</code></div>
+      </div>
       <p class="security">🔒 Your session is protected. Version 1.0</p>
     </section>
   </main>
