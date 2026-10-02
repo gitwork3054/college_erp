@@ -4,3 +4,4 @@ Version: 2026-10-02
 Includes Civil/Electrical PIO reports, calendar and demand filters,
 Dean-only CSV/PDF downloads, letterhead fields, notifications,
 Gujarati labels, and responsive interface improvements.
+Adds saved font-size and font-weight accessibility preferences in Settings.
