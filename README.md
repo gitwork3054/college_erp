@@ -9,12 +9,13 @@ This is a separate browser-compatible showcase of the College ERP desktop applic
 - Clickable KPI cards, complaint rows and department cards
 - Complaint and inventory creation with optional PDF attachments
 - Dean status updates, remarks and record deletion
-- Settings for language, display density and delete confirmation
-- Premium responsive UI with motion and hover effects
+- Settings for language, display density, font size, font weight and delete confirmation
+- Premium boxed responsive UI with accessible motion and hover effects
 - SQLite-backed demo records and role-based Dean/HOD/PIO access
 - Civil and Electrical PIO demand/calendar reports
-- Dean-only CSV and letterhead PDF downloads
-- In-app notifications with email/SMS preference fields
+- Dean-only CSV and letterhead PDF downloads for the last 15, 30, 60 or custom days
+- Live in-app notifications routed to the Dean and responsible department account
+- Notifications for new entries, edits, status changes, completion and deletion
 
 ## Demo accounts
 

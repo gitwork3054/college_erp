@@ -180,6 +180,16 @@ def add_notification(connection, username, message):
     )
 
 
+def notify_related(connection, department, message):
+    """Notify the Dean and the account responsible for the affected department."""
+    recipients = {"dean"}
+    department_account = department_username(department)
+    if department_account:
+        recipients.add(department_account)
+    for username in recipients:
+        add_notification(connection, username, message)
+
+
 def department_username(department):
     for username, user in USERS.items():
         if user.get("department") == department:
@@ -261,7 +271,7 @@ def create_pio_report():
             "INSERT INTO pio_reports (id,department,category,report_type,title,details,status,report_date,reminder_date,recipient,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (report_id, department, category, report_type, title, details, "Pending" if report_type == "Demand" else "Scheduled", report_date, reminder_date, recipient, session["username"]),
         )
-        add_notification(connection, "dean", f"New {report_type} report {report_id} from {department} PIO")
+        notify_related(connection, department, f"New {report_type} report {report_id} from {department} PIO")
     return jsonify(ok=True, message="PIO report submitted successfully.")
 
 
@@ -271,6 +281,16 @@ def mark_notifications_read():
     with db() as connection:
         connection.execute("UPDATE notifications SET is_read=1 WHERE username IN (?, 'all')", (session["username"],))
     return jsonify(ok=True, message="Notifications marked as read.")
+
+
+@app.get("/api/notifications")
+@login_required
+def notification_feed():
+    notifications = visible_notifications()
+    return jsonify(
+        notifications=notifications,
+        unread=sum(not item["is_read"] for item in notifications),
+    )
 
 
 @app.post("/api/notification-settings")
@@ -294,6 +314,10 @@ def filtered_pio_reports(args):
     report_type = args.get("report_type", "").strip()
     date_from = args.get("date_from", "").strip()
     date_to = args.get("date_to", "").strip()
+    period = args.get("period", "").strip()
+    if period in {"15", "30", "60"}:
+        date_to = date.today().isoformat()
+        date_from = (date.today() - timedelta(days=int(period) - 1)).isoformat()
     if department in PIO_DEPARTMENTS:
         clauses.append("department=?")
         params.append(department)
@@ -312,6 +336,34 @@ def filtered_pio_reports(args):
     query += " ORDER BY report_date DESC, rowid DESC"
     with db() as connection:
         return [dict(row) for row in connection.execute(query, params)]
+
+
+def requested_date_range(args):
+    period = args.get("period", "").strip()
+    today = date.today()
+    if period in {"15", "30", "60"}:
+        return today - timedelta(days=int(period) - 1), today
+    try:
+        start = date.fromisoformat(args.get("date_from", "")) if args.get("date_from") else None
+        end = date.fromisoformat(args.get("date_to", "")) if args.get("date_to") else None
+        return start, end
+    except ValueError:
+        return None, None
+
+
+def date_in_range(value, start, end):
+    if not start and not end:
+        return True
+    parsed = None
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            parsed = datetime.strptime(value, fmt).date()
+            break
+        except (TypeError, ValueError):
+            continue
+    if not parsed:
+        return False
+    return (not start or parsed >= start) and (not end or parsed <= end)
 
 
 @app.get("/reports/pio-letterhead.pdf")
@@ -368,9 +420,10 @@ def export_csv():
     writer.writerow(["Generated On", datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d/%m/%Y, %I:%M %p")])
     writer.writerow([])
 
+    start, end = requested_date_range(request.args)
     with db() as connection:
-        complaints = connection.execute("SELECT * FROM complaints ORDER BY rowid DESC").fetchall()
-        inventory = connection.execute("SELECT * FROM inventory ORDER BY rowid DESC").fetchall()
+        complaints = [row for row in connection.execute("SELECT * FROM complaints ORDER BY rowid DESC").fetchall() if date_in_range(row["date"], start, end)]
+        inventory = [row for row in connection.execute("SELECT * FROM inventory ORDER BY rowid DESC").fetchall() if date_in_range(row["date"], start, end)]
 
     writer.writerow(["COMPLAINTS"])
     complaint_fields = ["id", "department", "category", "subject", "priority", "status", "date", "description", "remarks", "archive_reason", "archived_at"]
@@ -408,7 +461,7 @@ def create_complaint():
             connection.execute("INSERT INTO complaints (id,department,category,subject,priority,status,date,description,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?)",
                                (item_id, department, category, subject, priority, "Pending",
                                 datetime.now().strftime("%d/%m/%Y"), description, "", attachment))
-            add_notification(connection, "dean", f"New complaint {item_id} submitted by {department}")
+            notify_related(connection, department, f"New complaint {item_id} submitted by {department}")
         return jsonify(ok=True, message="Complaint created successfully.")
     except ValueError as error:
         return jsonify(error=str(error)), 400
@@ -429,7 +482,7 @@ def create_inventory():
             connection.execute("INSERT INTO inventory (id,department,item,quantity,priority,status,date,reason,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?)",
                                (item_id, department, item, quantity, priority, "Pending",
                                 datetime.now().strftime("%d/%m/%Y"), reason, "", attachment))
-            add_notification(connection, "dean", f"New inventory request {item_id} submitted by {department}")
+            notify_related(connection, department, f"New inventory request {item_id} submitted by {department}")
         return jsonify(ok=True, message="Inventory request created successfully.")
     except (ValueError, TypeError) as error:
         return jsonify(error=str(error) if str(error) else "Invalid form values."), 400
@@ -464,9 +517,7 @@ def update_record(kind, item_id):
                 f"UPDATE {kind} SET status=?, remarks=?, archived=?, archive_reason=?, archived_at=? WHERE id=?",
                 (status, remarks, 1 if should_archive else 0, archive_reason, archived_at, item_id),
             )
-            target = department_username(record["department"])
-            if target:
-                add_notification(connection, target, f"{item_id} status changed to {status} by the Dean")
+            notify_related(connection, record["department"], f"{item_id} status changed to {status} by the Dean")
         else:
             if record["department"] != session.get("department"):
                 return jsonify(error="You can edit only your department records."), 403
@@ -498,6 +549,7 @@ def update_record(kind, item_id):
                     "UPDATE inventory SET item=?, quantity=?, priority=?, reason=? WHERE id=?",
                     (item, quantity, priority, reason, item_id),
                 )
+            notify_related(connection, record["department"], f"{item_id} was updated by {session.get('name', session['username'])}")
 
     return jsonify(ok=True, message="Record updated successfully.")
 
@@ -518,6 +570,7 @@ def delete_record(kind, item_id):
             f"UPDATE {kind} SET archived=1, archive_reason='Deleted', archived_at=? WHERE id=?",
             (archived_at, item_id),
         )
+        notify_related(connection, record["department"], f"{item_id} was deleted and moved to Archives by {session.get('name', session['username'])}")
     return jsonify(ok=True, message="Record moved to Archives.")
 
 

@@ -5,3 +5,5 @@ Includes Civil/Electrical PIO reports, calendar and demand filters,
 Dean-only CSV/PDF downloads, letterhead fields, notifications,
 Gujarati labels, and responsive interface improvements.
 Adds saved font-size and font-weight accessibility preferences in Settings.
+Adds premium boxed UI, responsive motion, 15/30/60/custom report periods,
+live notification polling, and Dean/department notification routing.
