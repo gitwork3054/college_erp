@@ -2,14 +2,31 @@
 
 This is a separate browser-compatible showcase of the College ERP desktop application. The original PySide6 files are not modified.
 
+## Latest web features
+
+- Complete English/Gujarati interface switching with saved preferences
+- Working Remember username option in the browser
+- Clickable KPI cards, complaint rows and department cards
+- Complaint and inventory creation with optional PDF attachments
+- Dean status updates, remarks and record deletion
+- Settings for language, display density and delete confirmation
+- Premium responsive UI with motion and hover effects
+- SQLite-backed demo records and role-based Dean/HOD/PIO access
+- Civil and Electrical PIO demand/calendar reports
+- Dean-only CSV and letterhead PDF downloads
+- In-app notifications with email/SMS preference fields
+
 ## Demo accounts
 
 - Dean: `dean` / `1234`
-- Hospital HOD: `hod_hospital` / `1234`
-- Computer HOD: `hod_computer` / `1234`
-- Mechanical HOD: `hod_mechanical` / `1234`
-- Electrical HOD: `hod_electrical` / `1234`
-- Civil HOD: `hod_civil` / `1234`
+- Anatomy HOD: `hod_anatomy` / `1234`
+- Physiology HOD: `hod_physiology` / `1234`
+- Biochemistry HOD: `hod_biochemistry` / `1234`
+- Pathology HOD: `hod_pathology` / `1234`
+- Microbiology HOD: `hod_microbiology` / `1234`
+- Pharmacology HOD: `hod_pharmacology` / `1234`
+- Civil PIO: `pio_civil` / `1234`
+- Electrical PIO: `pio_electrical` / `1234`
 
 ## Test locally
 
@@ -47,4 +64,4 @@ The free Render service may sleep when inactive and take a short time to open ag
 
 ## Showcase limitation
 
-This temporary version uses in-memory demo data. Changes reset whenever Render restarts. A database should be added for production use.
+This showcase uses SQLite. Data persists locally, but Render's free filesystem is ephemeral and may reset during redeployment or service replacement. Use Render Postgres or another managed database before production use.

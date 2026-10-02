@@ -31,7 +31,7 @@
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}
       {% endwith %}
-      <form method="post">
+      <form method="post" id="login-form">
         <label>Username</label>
         <input id="username" name="username" autocomplete="username" placeholder="Enter your username" required>
         <label>Password</label>
@@ -39,24 +39,36 @@
           <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
           <button type="button" class="eye" onclick="togglePassword()">Show</button>
         </div>
-        <div class="form-row"><label class="remember"><input type="checkbox"> Remember me</label><button type="button" class="link" onclick="alert('Please contact the system administrator to reset your password.')">Forgot password?</button></div>
+        <div class="form-row"><label class="remember"><input id="remember-username" type="checkbox"> Remember username</label><button type="button" class="link" onclick="alert('Please contact the system administrator to reset your password.')">Forgot password?</button></div>
         <button class="primary" type="submit">Sign In Securely</button>
       </form>
       <div class="demo-hint">
         <strong>Demo access</strong>
         <div class="demo-users">
-          <code>dean</code><br>
-          <code>hod_hospital</code><br>
-          <code>hod_computer</code><br>
-          <code>hod_mechanical</code><br>
-          <code>hod_electrical</code><br>
-          <code>hod_civil</code><br>
+          <span>Dean</span><code>dean</code>
+          <span>Anatomy HOD</span><code>hod_anatomy</code>
+          <span>Physiology HOD</span><code>hod_physiology</code>
+          <span>Biochemistry HOD</span><code>hod_biochemistry</code>
+          <span>Pathology HOD</span><code>hod_pathology</code>
+          <span>Microbiology HOD</span><code>hod_microbiology</code>
+          <span>Pharmacology HOD</span><code>hod_pharmacology</code>
+          <span>Civil PIO</span><code>pio_civil</code>
+          <span>Electrical PIO</span><code>pio_electrical</code>
         </div>
         <div class="demo-password">Password for all accounts: <code>1234</code></div>
       </div>
       <p class="security">🔒 Your session is protected. Version 1.0</p>
     </section>
   </main>
-  <script>function togglePassword(){const p=document.getElementById('password');const b=document.querySelector('.eye');p.type=p.type==='password'?'text':'password';b.textContent=p.type==='password'?'Show':'Hide'}</script>
+  <script>
+    function togglePassword(){const p=document.getElementById('password');const b=document.querySelector('.eye');p.type=p.type==='password'?'text':'password';b.textContent=p.type==='password'?'Show':'Hide'}
+    const username=document.getElementById('username'), remember=document.getElementById('remember-username');
+    const saved=localStorage.getItem('collegeErpUsername');
+    if(saved){username.value=saved;remember.checked=true;document.getElementById('password').focus()}
+    document.getElementById('login-form').addEventListener('submit',()=>{
+      if(remember.checked)localStorage.setItem('collegeErpUsername',username.value.trim());
+      else localStorage.removeItem('collegeErpUsername');
+    });
+  </script>
 </body>
 </html>

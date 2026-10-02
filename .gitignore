@@ -7,3 +7,5 @@ __pycache__/
 *.dmg
 .env
 .DS_Store
+college_erp.db
+uploads/
