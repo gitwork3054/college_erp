@@ -16,6 +16,9 @@ This is a separate browser-compatible showcase of the College ERP desktop applic
 - Dean-only CSV and letterhead PDF downloads for the last 15, 30, 60 or custom days
 - Live in-app notifications routed to the Dean and responsible department account
 - Notifications for new entries, edits, status changes, completion and deletion
+- Clickable colour-coded notifications that open the affected record
+- Sender-excluded routing to the Dean and relevant IT/Infrastructure/other management team
+- PDF or CSV format selection for complaint, inventory and PIO downloads
 
 ## Demo accounts
 
@@ -28,6 +31,11 @@ This is a separate browser-compatible showcase of the College ERP desktop applic
 - Pharmacology HOD: `hod_pharmacology` / `1234`
 - Civil PIO: `pio_civil` / `1234`
 - Electrical PIO: `pio_electrical` / `1234`
+- IT Management: `manager_it` / `1234`
+- Infrastructure Management: `manager_infrastructure` / `1234`
+- Equipment Management: `manager_equipment` / `1234`
+- Maintenance Management: `manager_maintenance` / `1234`
+- Safety Management: `manager_safety` / `1234`
 
 ## Test locally
 

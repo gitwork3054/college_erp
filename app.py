@@ -38,6 +38,11 @@ USERS = {
     "hod_pharmacology": {"password": "1234", "role": "HOD", "department": "Pharmacology", "name": "Pharmacology HOD"},
     "pio_civil": {"password": "1234", "role": "PIO", "department": "Civil", "name": "Civil PIO"},
     "pio_electrical": {"password": "1234", "role": "PIO", "department": "Electrical", "name": "Electrical PIO"},
+    "manager_it": {"password": "1234", "role": "Management", "department": None, "management_category": "IT", "name": "IT Management"},
+    "manager_infrastructure": {"password": "1234", "role": "Management", "department": None, "management_category": "Infrastructure", "name": "Infrastructure Management"},
+    "manager_equipment": {"password": "1234", "role": "Management", "department": None, "management_category": "Equipment", "name": "Equipment Management"},
+    "manager_maintenance": {"password": "1234", "role": "Management", "department": None, "management_category": "Maintenance", "name": "Maintenance Management"},
+    "manager_safety": {"password": "1234", "role": "Management", "department": None, "management_category": "Safety", "name": "Safety Management"},
 }
 DEPARTMENTS = ["Anatomy", "Physiology", "Biochemistry", "Pathology", "Microbiology", "Pharmacology"]
 PIO_DEPARTMENTS = ["Civil", "Electrical"]
@@ -47,6 +52,7 @@ PIO_CATEGORIES = {
 }
 ALLOWED_STATUS = {"Pending", "Received", "Under Review", "Approved", "Rejected", "Resolved", "Completed"}
 ALLOWED_PRIORITY = {"Low", "Medium", "High", "Urgent"}
+MANAGEMENT_CATEGORIES = ["Equipment", "IT", "Maintenance", "Infrastructure", "Safety", "Other"]
 
 
 def db():
@@ -76,7 +82,8 @@ def init_db():
         );
         CREATE TABLE IF NOT EXISTS notifications (
           id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL,
-          message TEXT NOT NULL, created_at TEXT NOT NULL, is_read INTEGER DEFAULT 0
+          message TEXT NOT NULL, created_at TEXT NOT NULL, is_read INTEGER DEFAULT 0,
+          record_type TEXT DEFAULT '', record_id TEXT DEFAULT '', event_type TEXT DEFAULT 'update'
         );
         CREATE TABLE IF NOT EXISTS notification_settings (
           username TEXT PRIMARY KEY, email TEXT DEFAULT '', mobile TEXT DEFAULT '',
@@ -91,6 +98,14 @@ def init_db():
                 connection.execute(f"ALTER TABLE {table} ADD COLUMN archive_reason TEXT DEFAULT ''")
             if "archived_at" not in columns:
                 connection.execute(f"ALTER TABLE {table} ADD COLUMN archived_at TEXT DEFAULT ''")
+            if table == "inventory" and "category" not in columns:
+                connection.execute("ALTER TABLE inventory ADD COLUMN category TEXT DEFAULT 'Other'")
+        notification_columns = {row[1] for row in connection.execute("PRAGMA table_info(notifications)")}
+        for column, definition in {
+            "record_type": "TEXT DEFAULT ''", "record_id": "TEXT DEFAULT ''", "event_type": "TEXT DEFAULT 'update'"
+        }.items():
+            if column not in notification_columns:
+                connection.execute(f"ALTER TABLE notifications ADD COLUMN {column} {definition}")
         if not connection.execute("SELECT 1 FROM complaints LIMIT 1").fetchone():
             complaints = [
                 ("CMP-1001", "Anatomy", "Equipment", "Dissection table maintenance", "Urgent", "Pending", "20/08/2026", "A dissection table requires immediate maintenance.", "", ""),
@@ -106,13 +121,13 @@ def init_db():
             )
         if not connection.execute("SELECT 1 FROM inventory LIMIT 1").fetchone():
             inventory = [
-                ("INV-501", "Anatomy", "Dissection Kit", 10, "Urgent", "Pending", "20/08/2026", "Required for anatomy practical sessions.", "", ""),
-                ("INV-502", "Physiology", "Digital Spirometer", 5, "Medium", "Approved", "19/08/2026", "Required for physiology demonstrations.", "Approved for purchase.", ""),
-                ("INV-503", "Microbiology", "Safety Gloves", 50, "High", "Received", "18/08/2026", "Required for laboratory practical sessions.", "", ""),
-                ("INV-504", "Pharmacology", "Drug Display Trays", 8, "High", "Pending", "20/08/2026", "Required for pharmacology demonstrations.", "", ""),
+                ("INV-501", "Anatomy", "Equipment", "Dissection Kit", 10, "Urgent", "Pending", "20/08/2026", "Required for anatomy practical sessions.", "", ""),
+                ("INV-502", "Physiology", "Equipment", "Digital Spirometer", 5, "Medium", "Approved", "19/08/2026", "Required for physiology demonstrations.", "Approved for purchase.", ""),
+                ("INV-503", "Microbiology", "Safety", "Safety Gloves", 50, "High", "Received", "18/08/2026", "Required for laboratory practical sessions.", "", ""),
+                ("INV-504", "Pharmacology", "Equipment", "Drug Display Trays", 8, "High", "Pending", "20/08/2026", "Required for pharmacology demonstrations.", "", ""),
             ]
             connection.executemany(
-                "INSERT INTO inventory (id,department,item,quantity,priority,status,date,reason,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                "INSERT INTO inventory (id,department,category,item,quantity,priority,status,date,reason,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 inventory,
             )
         department_migrations = {
@@ -146,7 +161,10 @@ def login_required(view):
 def visible_rows(table, archived=False):
     department = session.get("department")
     query, params = f"SELECT * FROM {table} WHERE archived = ?", (1 if archived else 0,)
-    if department:
+    if session.get("role") == "Management":
+        query += " AND category = ?"
+        params += (session.get("management_category", ""),)
+    elif department:
         query += " AND department = ?"
         params += (department,)
     query += " ORDER BY rowid DESC"
@@ -173,21 +191,32 @@ def visible_notifications():
         )]
 
 
-def add_notification(connection, username, message):
+def add_notification(connection, username, message, record_type="", record_id="", event_type="update"):
     connection.execute(
-        "INSERT INTO notifications (username,message,created_at) VALUES (?,?,?)",
-        (username, message, datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d/%m/%Y, %I:%M %p")),
+        "INSERT INTO notifications (username,message,created_at,record_type,record_id,event_type) VALUES (?,?,?,?,?,?)",
+        (username, message, datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d/%m/%Y, %I:%M %p"), record_type, record_id, event_type),
     )
 
 
-def notify_related(connection, department, message):
-    """Notify the Dean and the account responsible for the affected department."""
+def management_username(category):
+    for username, user in USERS.items():
+        if user.get("management_category") == category:
+            return username
+    return ""
+
+
+def notify_related(connection, department, message, category="", actor="", record_type="", record_id="", event_type="update"):
+    """Notify the Dean, affected HOD/PIO and category management, excluding the sender."""
     recipients = {"dean"}
     department_account = department_username(department)
     if department_account:
         recipients.add(department_account)
+    management_account = management_username(category)
+    if management_account:
+        recipients.add(management_account)
+    recipients.discard(actor)
     for username in recipients:
-        add_notification(connection, username, message)
+        add_notification(connection, username, message, record_type, record_id, event_type)
 
 
 def department_username(department):
@@ -271,7 +300,7 @@ def create_pio_report():
             "INSERT INTO pio_reports (id,department,category,report_type,title,details,status,report_date,reminder_date,recipient,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
             (report_id, department, category, report_type, title, details, "Pending" if report_type == "Demand" else "Scheduled", report_date, reminder_date, recipient, session["username"]),
         )
-        notify_related(connection, department, f"New {report_type} report {report_id} from {department} PIO")
+        notify_related(connection, department, f"New {report_type} report {report_id} from {department} PIO", category, session["username"], "pio", report_id, "new")
     return jsonify(ok=True, message="PIO report submitted successfully.")
 
 
@@ -446,6 +475,79 @@ def export_csv():
     )
 
 
+@app.get("/reports/download")
+@login_required
+def download_report():
+    if not dean_required():
+        return jsonify(error="Only the Dean can download reports."), 403
+    dataset = request.args.get("dataset", "complaints")
+    output_format = request.args.get("format", "pdf").lower()
+    if dataset not in {"complaints", "inventory", "pio"} or output_format not in {"pdf", "csv"}:
+        return jsonify(error="Select a valid report and file format."), 400
+
+    if dataset == "pio":
+        records = filtered_pio_reports(request.args)
+        title = "PIO REPORTS"
+        columns = [("id", "Report ID"), ("department", "Department"), ("category", "Category"),
+                   ("report_type", "Type"), ("title", "Title"), ("status", "Status"),
+                   ("report_date", "Date")]
+    else:
+        start, end = requested_date_range(request.args)
+        with db() as connection:
+            records = [dict(row) for row in connection.execute(f"SELECT * FROM {dataset} ORDER BY rowid DESC")]
+        records = [row for row in records if date_in_range(row["date"], start, end)]
+        if dataset == "complaints":
+            title = "COMPLAINT REPORT"
+            columns = [("id", "Complaint ID"), ("department", "Department"), ("category", "Category"),
+                       ("subject", "Subject"), ("priority", "Priority"), ("status", "Status"), ("date", "Date")]
+        else:
+            title = "INVENTORY REQUEST REPORT"
+            columns = [("id", "Request ID"), ("department", "Department"), ("category", "Category"),
+                       ("item", "Item"), ("quantity", "Quantity"), ("priority", "Priority"),
+                       ("status", "Status"), ("date", "Date")]
+
+    timestamp = datetime.now(ZoneInfo("Asia/Kolkata"))
+    base_name = f"{dataset}_report_{timestamp.strftime('%Y%m%d_%H%M')}"
+    if output_format == "csv":
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow([f"COLLEGE ERP — {title}"])
+        writer.writerow(["Generated On", timestamp.strftime("%d/%m/%Y, %I:%M %p")])
+        writer.writerow([])
+        writer.writerow([label for _, label in columns])
+        for row in records:
+            writer.writerow([csv_safe(row.get(field, "")) for field, _ in columns])
+        return Response("\ufeff" + output.getvalue(), mimetype="text/csv; charset=utf-8",
+                        headers={"Content-Disposition": f'attachment; filename="{base_name}.csv"', "Cache-Control": "no-store"})
+
+    buffer = BytesIO()
+    document = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=12*mm, leftMargin=12*mm, topMargin=14*mm, bottomMargin=14*mm)
+    styles = getSampleStyleSheet()
+    heading = ParagraphStyle("DownloadHeading", parent=styles["Title"], alignment=TA_CENTER,
+                             textColor=colors.HexColor("#0f2740"), fontSize=17, leading=21)
+    story = [Paragraph("COLLEGE ERP MANAGEMENT SYSTEM", heading), Paragraph(title, heading), Spacer(1, 4*mm),
+             Paragraph(f"Generated: {timestamp.strftime('%d/%m/%Y, %I:%M %p')}", styles["BodyText"]), Spacer(1, 5*mm)]
+    table_data = [[label for _, label in columns]]
+    for row in records:
+        table_data.append([Paragraph(str(row.get(field, "") or "—"), styles["BodyText"]) for field, _ in columns])
+    if not records:
+        table_data.append([Paragraph("No records found for the selected period.", styles["BodyText"])] + ["—"] * (len(columns) - 1))
+    available_width = A4[0] - 24*mm
+    table = Table(table_data, repeatRows=1, colWidths=[available_width / len(columns)] * len(columns))
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0f2740")), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"), ("FONTSIZE", (0, 0), (-1, -1), 7.5),
+        ("GRID", (0, 0), (-1, -1), .35, colors.HexColor("#cbd5e1")), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8fafc")]),
+        ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.extend([table, Spacer(1, 8*mm), Paragraph("Authorized by: College Dean", styles["BodyText"])])
+    document.build(story)
+    return Response(buffer.getvalue(), mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{base_name}.pdf"', "Cache-Control": "no-store"})
+
+
 @app.post("/api/complaints")
 @login_required
 def create_complaint():
@@ -461,7 +563,7 @@ def create_complaint():
             connection.execute("INSERT INTO complaints (id,department,category,subject,priority,status,date,description,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?)",
                                (item_id, department, category, subject, priority, "Pending",
                                 datetime.now().strftime("%d/%m/%Y"), description, "", attachment))
-            notify_related(connection, department, f"New complaint {item_id} submitted by {department}")
+            notify_related(connection, department, f"New complaint {item_id} submitted by {department}", category, session["username"], "complaints", item_id, "new")
         return jsonify(ok=True, message="Complaint created successfully.")
     except ValueError as error:
         return jsonify(error=str(error)), 400
@@ -473,16 +575,17 @@ def create_inventory():
     try:
         department = session.get("department") or request.form.get("department")
         item, reason = request.form.get("item", "").strip(), request.form.get("reason", "").strip()
+        category = request.form.get("category", "Other").strip()
         priority, quantity = request.form.get("priority", "Medium"), int(request.form.get("quantity", "0"))
-        if department not in DEPARTMENTS or not item or not reason or quantity < 1 or priority not in ALLOWED_PRIORITY:
+        if department not in DEPARTMENTS or category not in MANAGEMENT_CATEGORIES or not item or not reason or quantity < 1 or priority not in ALLOWED_PRIORITY:
             return jsonify(error="Complete all required fields."), 400
         attachment = save_pdf(request.files.get("attachment"))
         with db() as connection:
             item_id = next_id(connection, "inventory", "INV", 500)
-            connection.execute("INSERT INTO inventory (id,department,item,quantity,priority,status,date,reason,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                               (item_id, department, item, quantity, priority, "Pending",
+            connection.execute("INSERT INTO inventory (id,department,category,item,quantity,priority,status,date,reason,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                               (item_id, department, category, item, quantity, priority, "Pending",
                                 datetime.now().strftime("%d/%m/%Y"), reason, "", attachment))
-            notify_related(connection, department, f"New inventory request {item_id} submitted by {department}")
+            notify_related(connection, department, f"New inventory request {item_id} submitted by {department}", category, session["username"], "inventory", item_id, "new")
         return jsonify(ok=True, message="Inventory request created successfully.")
     except (ValueError, TypeError) as error:
         return jsonify(error=str(error) if str(error) else "Invalid form values."), 400
@@ -517,7 +620,8 @@ def update_record(kind, item_id):
                 f"UPDATE {kind} SET status=?, remarks=?, archived=?, archive_reason=?, archived_at=? WHERE id=?",
                 (status, remarks, 1 if should_archive else 0, archive_reason, archived_at, item_id),
             )
-            notify_related(connection, record["department"], f"{item_id} status changed to {status} by the Dean")
+            event_type = "completed" if status in {"Completed", "Resolved"} else "status"
+            notify_related(connection, record["department"], f"{item_id} status changed to {status} by the Dean", record["category"], session["username"], kind, item_id, event_type)
         else:
             if record["department"] != session.get("department"):
                 return jsonify(error="You can edit only your department records."), 403
@@ -538,18 +642,19 @@ def update_record(kind, item_id):
                 )
             else:
                 item = str(data.get("item", "")).strip()
+                category = str(data.get("category", record["category"] or "Other")).strip()
                 reason = str(data.get("reason", "")).strip()
                 try:
                     quantity = int(data.get("quantity", 0))
                 except (TypeError, ValueError):
                     quantity = 0
-                if not item or not reason or quantity < 1:
+                if category not in MANAGEMENT_CATEGORIES or not item or not reason or quantity < 1:
                     return jsonify(error="Item, quantity and reason are required."), 400
                 connection.execute(
-                    "UPDATE inventory SET item=?, quantity=?, priority=?, reason=? WHERE id=?",
-                    (item, quantity, priority, reason, item_id),
+                    "UPDATE inventory SET item=?, category=?, quantity=?, priority=?, reason=? WHERE id=?",
+                    (item, category, quantity, priority, reason, item_id),
                 )
-            notify_related(connection, record["department"], f"{item_id} was updated by {session.get('name', session['username'])}")
+            notify_related(connection, record["department"], f"{item_id} was updated by {session.get('name', session['username'])}", category, session["username"], kind, item_id, "update")
 
     return jsonify(ok=True, message="Record updated successfully.")
 
@@ -570,7 +675,7 @@ def delete_record(kind, item_id):
             f"UPDATE {kind} SET archived=1, archive_reason='Deleted', archived_at=? WHERE id=?",
             (archived_at, item_id),
         )
-        notify_related(connection, record["department"], f"{item_id} was deleted and moved to Archives by {session.get('name', session['username'])}")
+        notify_related(connection, record["department"], f"{item_id} was deleted and moved to Archives by {session.get('name', session['username'])}", record["category"], session["username"], kind, item_id, "deleted")
     return jsonify(ok=True, message="Record moved to Archives.")
 
 
