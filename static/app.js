@@ -97,4 +97,5 @@ function applyDisplayPreferences(){
 languageSelect.value=language;density.value=localStorage.getItem('erpDensity')||'comfortable';fontSize.value=localStorage.getItem('erpFontSize')||'medium';fontWeight.value=localStorage.getItem('erpFontWeight')||'normal';confirmDelete.checked=localStorage.getItem('erpConfirmDelete')!=='false';applyDisplayPreferences();
 document.getElementById('save-settings').addEventListener('click',()=>{language=languageSelect.value;localStorage.setItem('erpLanguage',language);localStorage.setItem('erpDensity',density.value);localStorage.setItem('erpFontSize',fontSize.value);localStorage.setItem('erpFontWeight',fontWeight.value);localStorage.setItem('erpConfirmDelete',confirmDelete.checked);applyDisplayPreferences();applyLanguage();updateClock();toast('Settings saved.')});
 window.addEventListener('click',e=>{if(e.target.classList.contains('modal'))e.target.classList.remove('open')});
+const _gu={'Download':'ડાઉનલોડ','New':'નવું','Updated':'અપડેટ','Status Change':'સ્થિતિ ફેરફાર','Completed':'પૂર્ણ','Deleted':'કાઢી નાખ્યું'};for(const k in _gu)if(!(k in gu))gu[k]=_gu[k];
 applyLanguage();

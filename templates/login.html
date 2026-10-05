@@ -1,30 +1,49 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>College ERP | Secure Login</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261005-notifications-downloads') }}">
+  <script>try{var d=document.documentElement;d.dataset.theme=localStorage.getItem('erpTheme')||'dark';if(sessionStorage.getItem('erpSplash'))d.classList.add('nosplash')}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;600;700&family=Noto+Serif+Gujarati:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261005-maison-ui') }}">
 </head>
 <body class="login-page">
+  <!-- Opening logo animation -->
+  <div id="splash" aria-hidden="true">
+    <div class="sp-glow"></div>
+    <div class="sp-stage">
+      <svg class="sp-ring" viewBox="0 0 220 220"><defs><linearGradient id="spg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3dfb2"/><stop offset=".5" stop-color="#ff4d6d"/><stop offset="1" stop-color="#d9b46c"/></linearGradient></defs><circle cx="110" cy="110" r="104" pathLength="1"/></svg>
+      <img class="sp-logo" src="{{ url_for('static', filename='logo.jpg') }}" alt="">
+    </div>
+    <h2 class="sp-title">COLLEGE ERP</h2>
+    <p class="sp-sub">Life-Line · Health Technology &amp; Allied Sciences</p>
+    <div class="sp-bar"><i></i></div>
+    <span class="sp-skip">Click to skip</span>
+  </div>
+
+  <button type="button" class="icon-btn theme-float rise" id="theme-toggle" style="--i:6" aria-label="Toggle light or dark mode"></button>
+
   <main class="login-shell">
     <section class="brand-panel">
+      <canvas id="fx"></canvas>
       <div>
-        <span class="eyebrow">COLLEGE MANAGEMENT SYSTEM</span>
-        <div class="brand-lockup">
+        <span class="eyebrow rise" style="--i:0">COLLEGE MANAGEMENT SYSTEM</span>
+        <div class="brand-lockup rise" style="--i:1">
           <img src="{{ url_for('static', filename='logo.jpg') }}" alt="College logo">
-          <div><h1>College ERP</h1><p>Centralized academic and administrative operations.</p></div>
+          <div><h1>College ERP</h1><p>Centralized academic and administrative operations, crafted for precision.</p></div>
         </div>
         <div class="features">
-          <div><span>✓</span><p><strong>Department Management</strong><br>Connect all departments through one secure platform.</p></div>
-          <div><span>✓</span><p><strong>Complaints & Inventory</strong><br>Track requests, priorities and approvals in real time.</p></div>
-          <div><span>✓</span><p><strong>Role-based Access</strong><br>Dedicated dashboards for the Dean and every HOD.</p></div>
+          <div class="rise" style="--i:2"><span>✓</span><p><strong>Department Management</strong><br>Connect all departments through one secure platform.</p></div>
+          <div class="rise" style="--i:3"><span>✓</span><p><strong>Complaints &amp; Inventory</strong><br>Track requests, priorities and approvals in real time.</p></div>
+          <div class="rise" style="--i:4"><span>✓</span><p><strong>Role-based Access</strong><br>Dedicated dashboards for the Dean and every HOD.</p></div>
         </div>
       </div>
-      <small>SECURE • RELIABLE • CENTRALIZED<br>Powered by Techfinitys</small>
+      <small class="rise" style="--i:5">Secure • Reliable • Centralized<br>Powered by Techfinitys</small>
     </section>
 
-    <section class="login-card">
+    <section class="login-card rise" style="--i:2">
       <div class="mobile-logo"><img src="{{ url_for('static', filename='logo.jpg') }}" alt="College logo"></div>
       <h2>Welcome Back</h2>
       <p class="muted">Sign in to access the College ERP dashboard.</p>
@@ -32,9 +51,9 @@
         {% for category, message in messages %}<div class="alert {{ category }}">{{ message }}</div>{% endfor %}
       {% endwith %}
       <form method="post" id="login-form">
-        <label>Username</label>
+        <label for="username">Username</label>
         <input id="username" name="username" autocomplete="username" placeholder="Enter your username" required>
-        <label>Password</label>
+        <label for="password">Password</label>
         <div class="password-wrap">
           <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" required>
           <button type="button" class="eye" onclick="togglePassword()">Show</button>
@@ -42,27 +61,14 @@
         <div class="form-row"><label class="remember"><input id="remember-username" type="checkbox"> Remember username</label><button type="button" class="link" onclick="alert('Please contact the system administrator to reset your password.')">Forgot password?</button></div>
         <button class="primary" type="submit">Sign In Securely</button>
       </form>
-      <div class="demo-hint">
-        <strong>Demo access</strong>
-        <div class="demo-users">
-          <span>Dean</span><code>dean</code>
-          <span>Anatomy HOD</span><code>hod_anatomy</code>
-          <span>Physiology HOD</span><code>hod_physiology</code>
-          <span>Biochemistry HOD</span><code>hod_biochemistry</code>
-          <span>Pathology HOD</span><code>hod_pathology</code>
-          <span>Microbiology HOD</span><code>hod_microbiology</code>
-          <span>Pharmacology HOD</span><code>hod_pharmacology</code>
-          <span>Civil PIO</span><code>pio_civil</code>
-          <span>Electrical PIO</span><code>pio_electrical</code>
-          <span>IT Management</span><code>manager_it</code>
-          <span>Infrastructure Management</span><code>manager_infrastructure</code>
-          <span>Equipment Management</span><code>manager_equipment</code>
-          <span>Maintenance Management</span><code>manager_maintenance</code>
-          <span>Safety Management</span><code>manager_safety</code>
+      <details class="demo-hint">
+        <summary>DEMO ACCESS</summary>
+        <div class="chips">
+          {% for label, user in [('Dean','dean'),('Anatomy HOD','hod_anatomy'),('Physiology HOD','hod_physiology'),('Biochemistry HOD','hod_biochemistry'),('Pathology HOD','hod_pathology'),('Microbiology HOD','hod_microbiology'),('Pharmacology HOD','hod_pharmacology'),('Civil PIO','pio_civil'),('Electrical PIO','pio_electrical'),('IT Management','manager_it'),('Infrastructure','manager_infrastructure'),('Equipment','manager_equipment'),('Maintenance','manager_maintenance'),('Safety','manager_safety')] %}<button type="button" class="chip" data-u="{{ user }}" title="{{ user }}">{{ label }}</button>{% endfor %}
         </div>
-        <div class="demo-password">Password for all accounts: <code>1234</code></div>
-      </div>
-      <p class="security">🔒 Your session is protected. Version 1.0</p>
+        <div>Tap a role to autofill · Password for all accounts: <code>1234</code></div>
+      </details>
+      <p class="security">🔒 Your session is protected · Version 2.0</p>
     </section>
   </main>
   <script>
@@ -75,5 +81,6 @@
       else localStorage.removeItem('collegeErpUsername');
     });
   </script>
+  <script src="{{ url_for('static', filename='premium.js', v='20261005-maison-ui') }}"></script>
 </body>
 </html>

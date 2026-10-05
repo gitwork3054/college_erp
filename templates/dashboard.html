@@ -1,9 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>College ERP | {{ user.role }} Dashboard</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261005-notifications-downloads') }}">
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('erpTheme')||'dark'}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;600;700&family=Noto+Serif+Gujarati:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261005-maison-ui') }}">
 </head>
 <body class="app-page" data-role="{{ user.role }}">
   {% macro complaint_table(rows, limit=0) %}
@@ -15,44 +18,44 @@
   <aside class="sidebar">
     <div class="sidebar-brand"><img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo"><div><strong>College ERP</strong><small data-i18n>Management System</small></div></div>
     <span class="menu-title" data-i18n>MAIN MENU</span>
-    <button class="nav active" data-page="overview"><span>▦</span><b data-i18n>Dashboard</b></button>
-    {% if user.role != 'PIO' %}<button class="nav" data-page="complaints"><span>▤</span><b data-i18n>Complaints</b></button>
-    <button class="nav" data-page="inventory"><span>▣</span><b data-i18n>Inventory Requests</b></button>{% endif %}
-    {% if user.role in ['Dean', 'PIO'] %}<button class="nav" data-page="pio-reports"><span>▥</span><b data-i18n>PIO Reports</b></button>{% endif %}
-    <button class="nav" data-page="notifications"><span>●</span><b data-i18n>Notifications</b>{% if unread_notifications %}<em class="nav-count">{{ unread_notifications }}</em>{% endif %}</button>
+    <button class="nav active" data-page="overview"><span class="ico" data-ico="grid"></span><b data-i18n>Dashboard</b></button>
+    {% if user.role != 'PIO' %}<button class="nav" data-page="complaints"><span class="ico" data-ico="alert"></span><b data-i18n>Complaints</b></button>
+    <button class="nav" data-page="inventory"><span class="ico" data-ico="box"></span><b data-i18n>Inventory Requests</b></button>{% endif %}
+    {% if user.role in ['Dean', 'PIO'] %}<button class="nav" data-page="pio-reports"><span class="ico" data-ico="file"></span><b data-i18n>PIO Reports</b></button>{% endif %}
+    <button class="nav" data-page="notifications"><span class="ico" data-ico="bell"></span><b data-i18n>Notifications</b>{% if unread_notifications %}<em class="nav-count">{{ unread_notifications }}</em>{% endif %}</button>
     <span class="menu-title" data-i18n>MANAGEMENT</span>
-    <button class="nav" data-page="reports"><span>▥</span><b data-i18n>Reports</b></button>
-    {% if user.role == 'Dean' %}<button class="nav" data-page="departments"><span>⌂</span><b data-i18n>Departments</b></button>{% endif %}
-    <button class="nav" data-page="settings"><span>⚙</span><b data-i18n>Settings</b></button>
-    <button class="nav" data-page="archives"><span>▧</span><b data-i18n>Archives</b></button>
-    <a class="nav logout" href="{{ url_for('logout') }}"><span>↪</span><b data-i18n>Logout</b></a>
+    <button class="nav" data-page="reports"><span class="ico" data-ico="chart"></span><b data-i18n>Reports</b></button>
+    {% if user.role == 'Dean' %}<button class="nav" data-page="departments"><span class="ico" data-ico="building"></span><b data-i18n>Departments</b></button>{% endif %}
+    <button class="nav" data-page="settings"><span class="ico" data-ico="gear"></span><b data-i18n>Settings</b></button>
+    <button class="nav" data-page="archives"><span class="ico" data-ico="archive"></span><b data-i18n>Archives</b></button>
+    <a class="nav logout" href="{{ url_for('logout') }}"><span class="ico" data-ico="out"></span><b data-i18n>Logout</b></a>
+    <small class="powered">Techfinitys</small>
   </aside>
 
   <main class="workspace">
-    <header class="topbar"><div><h1 id="page-title" data-i18n>{{ user.role }} Dashboard</h1><p id="page-subtitle" data-i18n>Overview of college operations and recent activity.</p></div><div class="top-actions"><span id="clock"></span><span class="role-badge {{ 'hod' if user.role == 'HOD' else '' }}">{{ user.role }}{% if user.department %} • <span data-value="{{ user.department }}">{{ user.department }}</span>{% elif user.management_category %} • <span data-value="{{ user.management_category }}">{{ user.management_category }}</span>{% endif %}</span></div></header>
+    <header class="topbar"><div><h1 id="page-title" data-i18n>{{ user.role }} Dashboard</h1><p id="page-subtitle" data-i18n>Overview of college operations and recent activity.</p></div><div class="top-actions"><button type="button" class="icon-btn" id="cmd-open" title="Quick search (Ctrl+K)"><span class="ico" data-ico="search" style="width:19px;height:19px;display:grid"></span><kbd>Ctrl K</kbd></button><button type="button" class="icon-btn" id="theme-toggle" aria-label="Toggle light or dark mode"></button><span id="clock"></span><span class="role-badge {{ 'hod' if user.role == 'HOD' else '' }}">{{ user.role }}{% if user.department %} • <span data-value="{{ user.department }}">{{ user.department }}</span>{% elif user.management_category %} • <span data-value="{{ user.management_category }}">{{ user.management_category }}</span>{% endif %}</span></div></header>
 
     <section id="overview" class="page active-page">
       <div class="welcome"><div><span data-i18n>WELCOME BACK</span><h2>{{ user.name }}</h2><p data-i18n>{% if user.role == 'Dean' %}Monitor requests and activities across all departments.{% else %}Manage requests and activities for your department.{% endif %}</p></div><div class="welcome-mark">ERP</div></div>
       <div class="stats">
-        <article class="stat-card jump" data-page="complaints" data-filter="all"><span class="icon blue">▤</span><div><small data-i18n>Total Complaints</small><strong>{{ complaints|length }}</strong></div><i>↗</i></article>
-        <article class="stat-card jump" data-page="complaints" data-filter="Pending"><span class="icon amber">!</span><div><small data-i18n>Pending</small><strong>{{ complaints|selectattr('status','equalto','Pending')|list|length }}</strong></div><i>↗</i></article>
-        <article class="stat-card jump" data-page="complaints" data-filter="Resolved"><span class="icon green">✓</span><div><small data-i18n>Resolved</small><strong>{{ complaints|selectattr('status','equalto','Resolved')|list|length }}</strong></div><i>↗</i></article>
-        <article class="stat-card jump" data-page="inventory"><span class="icon purple">▣</span><div><small data-i18n>Inventory Requests</small><strong>{{ inventory|length }}</strong></div><i>↗</i></article>
+        <article class="stat-card jump" data-page="complaints" data-filter="all"><span class="icon blue" data-ico="file"></span><div><small data-i18n>Total Complaints</small><strong>{{ complaints|length }}</strong></div><i>↗</i></article>
+        <article class="stat-card jump" data-page="complaints" data-filter="Pending"><span class="icon amber" data-ico="clock"></span><div><small data-i18n>Pending</small><strong>{{ complaints|selectattr('status','equalto','Pending')|list|length }}</strong></div><i>↗</i></article>
+        <article class="stat-card jump" data-page="complaints" data-filter="Resolved"><span class="icon green" data-ico="check"></span><div><small data-i18n>Resolved</small><strong>{{ complaints|selectattr('status','equalto','Resolved')|list|length }}</strong></div><i>↗</i></article>
+        <article class="stat-card jump" data-page="inventory"><span class="icon purple" data-ico="box"></span><div><small data-i18n>Inventory Requests</small><strong>{{ inventory|length }}</strong></div><i>↗</i></article>
       </div>
       <div class="panel"><div class="section-head"><div><h2 data-i18n>Recent Complaints</h2><p data-i18n>Click any complaint to preview full details.</p></div><button class="secondary jump" data-page="complaints" data-i18n>View All</button></div>{{ complaint_table(complaints, 4) }}</div>
     </section>
 
-    <section id="complaints" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>Complaint Control Centre</h2><p data-i18n>Click a row to preview, update or manage the complaint.</p></div>{% if user.role != 'Management' %}<button class="primary small" onclick="openModal('complaint-modal')" data-i18n>+ New Complaint</button>{% endif %}</div><div class="filters"><input id="complaint-search" data-i18n-placeholder="Search complaints..." placeholder="Search complaints..."><select id="complaint-status"><option value="all" data-i18n>All Status</option><option>Pending</option><option>Received</option><option>Under Review</option><option>Resolved</option></select></div>{{ complaint_table(complaints) }}</div></section>
+    <section id="complaints" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>Complaint Control Centre</h2><p data-i18n>Click a row to preview, update or manage the complaint.</p></div><div class="head-actions">{% if user.role == 'Dean' %}<button class="secondary small dl-jump" data-dataset="complaints" data-i18n>Download</button>{% endif %}{% if user.role != 'Management' %}<button class="primary small" onclick="openModal('complaint-modal')" data-i18n>+ New Complaint</button>{% endif %}</div></div><div class="filters"><input id="complaint-search" data-i18n-placeholder="Search complaints..." placeholder="Search complaints..."><select id="complaint-status"><option value="all" data-i18n>All Status</option><option>Pending</option><option>Received</option><option>Under Review</option><option>Resolved</option></select></div>{{ complaint_table(complaints) }}</div></section>
 
-    <section id="inventory" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>Inventory Control Centre</h2><p data-i18n>Review inventory needs and current request status.</p></div>{% if user.role != 'Management' %}<button class="primary small" onclick="openModal('inventory-modal')" data-i18n>+ New Request</button>{% endif %}</div>
+    <section id="inventory" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>Inventory Control Centre</h2><p data-i18n>Review inventory needs and current request status.</p></div><div class="head-actions">{% if user.role == 'Dean' %}<button class="secondary small dl-jump" data-dataset="inventory" data-i18n>Download</button>{% endif %}{% if user.role != 'Management' %}<button class="primary small" onclick="openModal('inventory-modal')" data-i18n>+ New Request</button>{% endif %}</div></div>
       <div class="table-wrap"><table><thead><tr><th data-i18n>Request ID</th><th data-i18n>Department</th><th data-i18n>Category</th><th data-i18n>Item</th><th data-i18n>Quantity</th><th data-i18n>Priority</th><th data-i18n>Status</th></tr></thead><tbody>{% for item in inventory %}<tr class="record-row" data-kind="inventory" data-record='{{ item|tojson }}'><td><strong>{{ item.id }}</strong></td><td data-value="{{ item.department }}">{{ item.department }}</td><td data-value="{{ item.category }}">{{ item.category }}</td><td>{{ item.item }}</td><td>{{ item.quantity }}</td><td><span class="pill priority-{{ item.priority|lower }}" data-value="{{ item.priority }}">{{ item.priority }}</span></td><td><span class="pill status-{{ item.status|lower|replace(' ','-') }}" data-value="{{ item.status }}">{{ item.status }}</span></td></tr>{% endfor %}</tbody></table></div>
     </div></section>
 
     <section id="reports" class="page">
       <div class="panel">
         <div class="section-head"><div><h2 data-i18n>Reports & Analytics</h2><p data-i18n>Detailed demand, calendar and department analytics.</p></div></div>
-        <div class="report-grid"><article><small data-i18n>Complaint Resolution</small><strong>{{ ((complaints|selectattr('status','equalto','Resolved')|list|length / complaints|length * 100) if complaints else 0)|round|int }}%</strong><div class="bar"><i style="width:{{ ((complaints|selectattr('status','equalto','Resolved')|list|length / complaints|length * 100) if complaints else 0)|round|int }}%"></i></div></article><article><small data-i18n>PIO Demands</small><strong>{{ pio_reports|selectattr('report_type','equalto','Demand')|list|length }}</strong><p data-i18n>Civil and Electrical requirements</p></article><article><small data-i18n>Calendar Items</small><strong>{{ pio_reports|selectattr('report_type','equalto','Calendar')|list|length }}</strong><p data-i18n>Scheduled PIO work</p></article></div>
-        {% if user.role == 'Dean' %}
+                {% if user.role == 'Dean' %}
         <div class="download-box">
           <div class="download-box-head"><h3 data-i18n>Download Reports</h3><p data-i18n>Choose records, duration and final file format.</p></div>
           <div class="duration-grid download-grid">
@@ -65,12 +68,13 @@
           </div>
         </div>
         {% endif %}
+        <div class="report-grid"><article><small data-i18n>Complaint Resolution</small><strong>{{ ((complaints|selectattr('status','equalto','Resolved')|list|length / complaints|length * 100) if complaints else 0)|round|int }}%</strong><div class="bar"><i style="width:{{ ((complaints|selectattr('status','equalto','Resolved')|list|length / complaints|length * 100) if complaints else 0)|round|int }}%"></i></div></article><article><small data-i18n>PIO Demands</small><strong>{{ pio_reports|selectattr('report_type','equalto','Demand')|list|length }}</strong><p data-i18n>Civil and Electrical requirements</p></article><article><small data-i18n>Calendar Items</small><strong>{{ pio_reports|selectattr('report_type','equalto','Calendar')|list|length }}</strong><p data-i18n>Scheduled PIO work</p></article></div>
       </div>
     </section>
 
-    {% if user.role in ['Dean', 'PIO'] %}<section id="pio-reports" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>PIO Civil & Electrical Reports</h2><p data-i18n>Inter-connected demand and calendar management.</p></div><button class="primary small" onclick="openModal('pio-modal')" data-i18n>+ New PIO Report</button></div><div class="filters"><input id="pio-search" data-i18n-placeholder="Search PIO reports..." placeholder="Search PIO reports..."><select id="pio-type"><option value="all" data-i18n>All Types</option><option>Demand</option><option>Calendar</option></select><input id="pio-date" type="date"></div><div class="table-wrap"><table><thead><tr><th data-i18n>Report ID</th><th data-i18n>Department</th><th data-i18n>Type</th><th data-i18n>Category</th><th data-i18n>Title</th><th data-i18n>Status</th><th data-i18n>Date</th><th data-i18n>Reminder</th></tr></thead><tbody>{% for item in pio_reports %}<tr class="pio-row" data-record='{{ item|tojson }}'><td><strong>{{ item.id }}</strong></td><td data-value="{{ item.department }}">{{ item.department }}</td><td data-value="{{ item.report_type }}">{{ item.report_type }}</td><td data-value="{{ item.category }}">{{ item.category }}</td><td>{{ item.title }}</td><td><span class="pill status-{{ item.status|lower }}">{{ item.status }}</span></td><td>{{ item.report_date }}</td><td>{{ item.reminder_date or '—' }}</td></tr>{% endfor %}</tbody></table></div></div></section>{% endif %}
+    {% if user.role in ['Dean', 'PIO'] %}<section id="pio-reports" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>PIO Civil & Electrical Reports</h2><p data-i18n>Inter-connected demand and calendar management.</p></div><div class="head-actions">{% if user.role == 'Dean' %}<button class="secondary small dl-jump" data-dataset="pio" data-i18n>Download</button>{% endif %}<button class="primary small" onclick="openModal('pio-modal')" data-i18n>+ New PIO Report</button></div></div><div class="filters"><input id="pio-search" data-i18n-placeholder="Search PIO reports..." placeholder="Search PIO reports..."><select id="pio-type"><option value="all" data-i18n>All Types</option><option>Demand</option><option>Calendar</option></select><input id="pio-date" type="date"></div><div class="table-wrap"><table><thead><tr><th data-i18n>Report ID</th><th data-i18n>Department</th><th data-i18n>Type</th><th data-i18n>Category</th><th data-i18n>Title</th><th data-i18n>Status</th><th data-i18n>Date</th><th data-i18n>Reminder</th></tr></thead><tbody>{% for item in pio_reports %}<tr class="pio-row" data-record='{{ item|tojson }}'><td><strong>{{ item.id }}</strong></td><td data-value="{{ item.department }}">{{ item.department }}</td><td data-value="{{ item.report_type }}">{{ item.report_type }}</td><td data-value="{{ item.category }}">{{ item.category }}</td><td>{{ item.title }}</td><td><span class="pill status-{{ item.status|lower }}">{{ item.status }}</span></td><td>{{ item.report_date }}</td><td>{{ item.reminder_date or '—' }}</td></tr>{% endfor %}</tbody></table></div></div></section>{% endif %}
 
-    <section id="notifications" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>Notification Centre</h2><p data-i18n>Live activity from your department and the Dean office.</p></div><button class="secondary" id="mark-read" data-i18n>Mark All Read</button></div><div class="notification-list" id="notification-list">{% for item in notifications %}<article class="notification-item event-{{ item.event_type }} {{ '' if item.is_read else 'unread' }}" data-kind="{{ item.record_type }}" data-record-id="{{ item.record_id }}" tabindex="0"><span>●</span><div><strong>{{ item.message }}</strong><small>{{ item.created_at }}</small></div><i>›</i></article>{% else %}<div class="empty-state" data-i18n>No notifications yet.</div>{% endfor %}</div></div></section>
+    <section id="notifications" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>Notification Centre</h2><p data-i18n>Live activity from your department and the Dean office.</p></div><button class="secondary" id="mark-read" data-i18n>Mark All Read</button></div><div class="legend"><span style="--c:var(--info)"><i></i><b data-i18n>New</b></span><span style="--c:var(--vio)"><i></i><b data-i18n>Updated</b></span><span style="--c:var(--warn)"><i></i><b data-i18n>Status Change</b></span><span style="--c:var(--ok)"><i></i><b data-i18n>Completed</b></span><span style="--c:var(--bad)"><i></i><b data-i18n>Deleted</b></span></div><div class="notification-list" id="notification-list">{% for item in notifications %}<article class="notification-item event-{{ item.event_type }} {{ '' if item.is_read else 'unread' }}" data-kind="{{ item.record_type }}" data-record-id="{{ item.record_id }}" tabindex="0"><span>●</span><div><strong>{{ item.message }}</strong><small>{{ item.created_at }}</small></div><i>›</i></article>{% else %}<div class="empty-state" data-i18n>No notifications yet.</div>{% endfor %}</div></div></section>
 
     {% if user.role == 'Dean' %}<section id="departments" class="page"><div class="panel"><div class="section-head"><div><h2 data-i18n>Department Management</h2><p data-i18n>Click a department to view its complaints.</p></div></div><div class="department-grid">{% for dep in departments %}<article class="department-card" data-department="{{ dep }}"><span>{{ dep[0] }}</span><div><strong data-value="{{ dep }}">{{ dep }}</strong><small>{{ complaints|selectattr('department','equalto',dep)|list|length }} <em data-i18n>complaints</em> • {{ inventory|selectattr('department','equalto',dep)|list|length }} <em data-i18n>requests</em></small></div><i>›</i></article>{% endfor %}</div></div></section>{% endif %}
 
@@ -123,8 +127,10 @@
       {% endif %}
     </div>
   </div>
+  <div id="cmdk" class="cmdk"><div class="cmdk-card"><input id="cmdk-input" placeholder="Jump to a page or action…" autocomplete="off"><div id="cmdk-list"></div><div class="cmdk-foot">↑ ↓ navigate · Enter select · Esc close</div></div></div>
   <div id="toast" class="toast"></div>
   <script>window.erpUser={{ {'role': user.role, 'department': user.department}|tojson }};</script>
-  <script src="{{ url_for('static', filename='app.js', v='20261005-notifications-downloads') }}"></script>
+  <script src="{{ url_for('static', filename='app.js', v='20261005-maison-ui') }}"></script>
+  <script src="{{ url_for('static', filename='premium.js', v='20261005-maison-ui') }}"></script>
 </body>
 </html>
