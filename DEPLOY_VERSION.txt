@@ -1,2 +1,3 @@
 20261007-home-live-clock
 Blue/light/dark dashboard; native add and edit dialogs; creator-or-Dean editing; text-only font sizing; professional home effects and live local clock.
+College logo in top-left sidebar; click to return home.

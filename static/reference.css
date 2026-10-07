@@ -105,3 +105,10 @@ dialog.record-dialog .modal-card{margin:auto}.admin-update[hidden]{display:none!
 @media(max-width:950px){.campus-network{width:240px;flex-basis:240px;margin-right:0}.campus-welcome{padding:24px}.home-brief button{padding:16px}}
 @media(max-width:640px){.campus-welcome{min-height:210px;padding:23px 22px 36px}.campus-network{position:absolute;right:-110px;width:300px;opacity:.2}.welcome-copy{max-width:100%}.welcome-eyebrow time{margin-left:0}.home-brief{grid-template-columns:1fr;gap:9px}.home-brief button{padding:14px 17px}.home-brief strong{font-size:calc(23px * var(--erp-font-scale,1))}.home-motion-toggle{right:14px;bottom:10px}}
 @media(prefers-reduced-motion:reduce){#overview *,#overview *::before{animation:none!important;transition:none!important}#overview .campus-tile:hover{transform:none}}
+
+/* Existing college identity in the top-left rail, without changing rail size. */
+.rail-cap{display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rail-logo{display:grid;place-items:center;width:58px;height:58px;padding:3px;border:1px solid #ffffff28;border-radius:50%;background:#fff;box-shadow:0 4px 14px #06152c30;flex-shrink:0}
+.rail-logo img{display:block;width:52px;height:52px;object-fit:contain;border-radius:50%}
+.rail-logo:hover{box-shadow:0 0 0 3px #6aa3ff30,0 4px 14px #06152c30}
+@media(max-width:640px){.rail-logo{width:46px;height:46px}.rail-logo img{width:40px;height:40px}}
