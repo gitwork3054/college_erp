@@ -1,0 +1,20 @@
+/* Blue college identity intro: runs before the login page. */
+.erp-intro{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 40%,#173e87 0%,#101f43 42%,#070e20 80%);color:#f1f7ff;overflow:hidden;transition:opacity .5s ease,visibility .5s ease}
+.erp-intro.dismissed{opacity:0;visibility:hidden;pointer-events:none}
+.intro-content{text-align:center;position:relative;padding:30px;animation:introArrive .75s ease both}
+.intro-orbit{position:relative;width:205px;height:205px;margin:0 auto 38px;display:grid;place-items:center}
+.intro-orbit::before,.intro-orbit::after{content:'';position:absolute;inset:0;border-radius:50%;border:2px solid #5cb7ff50;border-top-color:#c4eaff;border-bottom-color:#237afb;animation:introOrbit 2.4s linear infinite}
+.intro-orbit::after{inset:-14px;border:1px solid #4e8bf933;border-right-color:#79c9ff;animation-direction:reverse;animation-duration:4s}
+.intro-orbit img{width:176px;height:176px;object-fit:cover;border-radius:50%;box-shadow:0 0 45px #2587ff5c,0 0 100px #1565dd38;animation:introLogo 2.7s ease-in-out both}
+.intro-title{font:750 clamp(24px,4vw,42px)/1.3 'Segoe UI',Arial,sans-serif;letter-spacing:.24em;margin:0 0 12px;padding-left:.24em;color:#d3eaff;animation:introText .9s ease .4s both}
+.intro-subtitle{font:600 11px/1.8 'Segoe UI',Arial,sans-serif;letter-spacing:.17em;text-transform:uppercase;margin:0;color:#a7bedc;animation:introText .9s ease .7s both}
+.intro-progress{height:3px;width:180px;background:#496ab533;overflow:hidden;border-radius:4px;margin:27px auto 0}.intro-progress span{display:block;height:100%;background:linear-gradient(90deg,#237aff,#b5e5ff);transform-origin:left;animation:introProgress 2.7s ease both}
+.intro-skip{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);border:1px solid #8bb3ec50;border-radius:30px;padding:10px 22px;background:#1d366a66;color:#d5e6ff;font-size:12px;cursor:pointer}.intro-skip:focus-visible{outline:3px solid #81c9ff;outline-offset:4px}
+@keyframes introOrbit{to{transform:rotate(360deg)}}
+@keyframes introLogo{0%{opacity:0;transform:scale(.75)}30%{opacity:1;transform:scale(1)}80%{transform:scale(1.035)}100%{transform:scale(1)}}
+@keyframes introArrive{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes introText{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes introProgress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.intro-seen .erp-intro{display:none}
+@media(prefers-reduced-motion:reduce){.erp-intro *,.erp-intro *::before,.erp-intro *::after{animation:none!important;transition:none!important}}
+@media(max-width:500px){.intro-orbit{width:175px;height:175px}.intro-orbit img{width:150px;height:150px}.intro-subtitle{font-size:10px;max-width:290px}}

@@ -90,8 +90,10 @@ def init_db():
           in_app INTEGER DEFAULT 1, email_enabled INTEGER DEFAULT 0, sms_enabled INTEGER DEFAULT 0
         );
         """)
-        for table in ("complaints", "inventory"):
+        for table in ("complaints", "inventory", "pio_reports"):
             columns = {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
+            if "created_by" not in columns:
+                connection.execute(f"ALTER TABLE {table} ADD COLUMN created_by TEXT DEFAULT ''")
             if "archived" not in columns:
                 connection.execute(f"ALTER TABLE {table} ADD COLUMN archived INTEGER DEFAULT 0")
             if "archive_reason" not in columns:
@@ -158,6 +160,17 @@ def login_required(view):
     return wrapped
 
 
+def may_edit(record):
+    return session.get("role") == "Dean" or bool(record["created_by"] and record["created_by"] == session.get("username"))
+
+
+def record_for_user(row):
+    result = dict(row)
+    result["can_edit"] = may_edit(row)
+    result["can_delete"] = result["can_edit"] and not result.get("archived", 0)
+    return result
+
+
 def visible_rows(table, archived=False):
     department = session.get("department")
     query, params = f"SELECT * FROM {table} WHERE archived = ?", (1 if archived else 0,)
@@ -169,17 +182,19 @@ def visible_rows(table, archived=False):
         params += (department,)
     query += " ORDER BY rowid DESC"
     with db() as connection:
-        return [dict(row) for row in connection.execute(query, params)]
+        return [record_for_user(row) for row in connection.execute(query, params)]
 
 
-def visible_pio_reports():
-    query, params = "SELECT * FROM pio_reports", ()
+def visible_pio_reports(archived=False):
+    if session.get("role") not in {"Dean", "PIO"}:
+        return []
+    query, params = "SELECT * FROM pio_reports WHERE archived=?", (int(archived),)
     if session.get("role") == "PIO":
-        query += " WHERE department=?"
-        params = (session.get("department"),)
+        query += " AND department=?"
+        params += (session.get("department"),)
     query += " ORDER BY report_date DESC, rowid DESC"
     with db() as connection:
-        return [dict(row) for row in connection.execute(query, params)]
+        return [record_for_user(row) for row in connection.execute(query, params)]
 
 
 def visible_notifications():
@@ -269,7 +284,7 @@ def dashboard():
                            inventory=visible_rows("inventory"),
                            archived_complaints=visible_rows("complaints", archived=True),
                            archived_inventory=visible_rows("inventory", archived=True),
-                           pio_reports=visible_pio_reports(), notifications=notifications,
+                           pio_reports=visible_pio_reports(), archived_pio=visible_pio_reports(True), notifications=notifications,
                            unread_notifications=sum(not item["is_read"] for item in notifications),
                            departments=DEPARTMENTS, pio_departments=PIO_DEPARTMENTS,
                            pio_categories=PIO_CATEGORIES, user=session)
@@ -282,6 +297,8 @@ def dean_required():
 @app.post("/api/pio-reports")
 @login_required
 def create_pio_report():
+    if session.get("role") not in {"Dean", "PIO"}:
+        return jsonify(error="You cannot create PIO reports."), 403
     department = session.get("department") if session.get("role") == "PIO" else request.form.get("department", "")
     category = request.form.get("category", "").strip()
     report_type = request.form.get("report_type", "Demand").strip()
@@ -551,6 +568,8 @@ def download_report():
 @app.post("/api/complaints")
 @login_required
 def create_complaint():
+    if session.get("role") not in {"Dean", "HOD"}:
+        return jsonify(error="You cannot create complaints."), 403
     try:
         department = session.get("department") or request.form.get("department")
         subject, description = request.form.get("subject", "").strip(), request.form.get("description", "").strip()
@@ -560,9 +579,9 @@ def create_complaint():
         attachment = save_pdf(request.files.get("attachment"))
         with db() as connection:
             item_id = next_id(connection, "complaints", "CMP", 1000)
-            connection.execute("INSERT INTO complaints (id,department,category,subject,priority,status,date,description,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            connection.execute("INSERT INTO complaints (id,department,category,subject,priority,status,date,description,remarks,attachment,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                                (item_id, department, category, subject, priority, "Pending",
-                                datetime.now().strftime("%d/%m/%Y"), description, "", attachment))
+                                datetime.now().strftime("%d/%m/%Y"), description, "", attachment, session["username"]))
             notify_related(connection, department, f"New complaint {item_id} submitted by {department}", category, session["username"], "complaints", item_id, "new")
         return jsonify(ok=True, message="Complaint created successfully.")
     except ValueError as error:
@@ -572,6 +591,8 @@ def create_complaint():
 @app.post("/api/inventory")
 @login_required
 def create_inventory():
+    if session.get("role") not in {"Dean", "HOD"}:
+        return jsonify(error="You cannot create inventory requests."), 403
     try:
         department = session.get("department") or request.form.get("department")
         item, reason = request.form.get("item", "").strip(), request.form.get("reason", "").strip()
@@ -582,100 +603,107 @@ def create_inventory():
         attachment = save_pdf(request.files.get("attachment"))
         with db() as connection:
             item_id = next_id(connection, "inventory", "INV", 500)
-            connection.execute("INSERT INTO inventory (id,department,category,item,quantity,priority,status,date,reason,remarks,attachment) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            connection.execute("INSERT INTO inventory (id,department,category,item,quantity,priority,status,date,reason,remarks,attachment,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                                (item_id, department, category, item, quantity, priority, "Pending",
-                                datetime.now().strftime("%d/%m/%Y"), reason, "", attachment))
+                                datetime.now().strftime("%d/%m/%Y"), reason, "", attachment, session["username"]))
             notify_related(connection, department, f"New inventory request {item_id} submitted by {department}", category, session["username"], "inventory", item_id, "new")
         return jsonify(ok=True, message="Inventory request created successfully.")
     except (ValueError, TypeError) as error:
         return jsonify(error=str(error) if str(error) else "Invalid form values."), 400
 
 
+def validated_pio(data, record):
+    department = record["department"]
+    category = str(data.get("category", record["category"])).strip()
+    report_type = data.get("report_type", record["report_type"])
+    title = str(data.get("title", record["title"])).strip()
+    details = str(data.get("details", record["details"])).strip()
+    report_date = str(data.get("report_date", record["report_date"]))
+    reminder_date = str(data.get("reminder_date", record["reminder_date"] or "")).strip()
+    recipient = str(data.get("recipient", record["recipient"] or "")).strip()
+    if category not in PIO_CATEGORIES[department] or report_type not in {"Demand", "Calendar"} or not title or not details:
+        raise ValueError("Complete all required PIO fields with a valid category and type.")
+    date.fromisoformat(report_date)
+    if reminder_date:
+        date.fromisoformat(reminder_date)
+    return category, report_type, title, details, report_date, reminder_date, recipient
+
+
 @app.patch("/api/<kind>/<item_id>")
 @login_required
 def update_record(kind, item_id):
-    if kind not in {"complaints", "inventory"}:
+    table = {"complaints": "complaints", "inventory": "inventory", "pio": "pio_reports", "pio-reports": "pio_reports"}.get(kind)
+    if not table:
         return jsonify(error="Invalid record type."), 400
-
     data = request.get_json(silent=True) or {}
-
     with db() as connection:
-        record = connection.execute(
-            f"SELECT * FROM {kind} WHERE id=?",
-            (item_id,),
-        ).fetchone()
-
+        record = connection.execute(f"SELECT * FROM {table} WHERE id=?", (item_id,)).fetchone()
         if not record:
             return jsonify(error="Record not found."), 404
-
-        if session.get("role") == "Dean":
-            status = data.get("status", "")
-            remarks = str(data.get("remarks", "")).strip()
-            if status not in ALLOWED_STATUS:
-                return jsonify(error="Invalid status."), 400
-            should_archive = status in {"Completed", "Resolved"}
-            archive_reason = "Completed" if should_archive else ""
-            archived_at = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d/%m/%Y, %I:%M %p") if should_archive else ""
-            connection.execute(
-                f"UPDATE {kind} SET status=?, remarks=?, archived=?, archive_reason=?, archived_at=? WHERE id=?",
-                (status, remarks, 1 if should_archive else 0, archive_reason, archived_at, item_id),
-            )
-            event_type = "completed" if status in {"Completed", "Resolved"} else "status"
-            notify_related(connection, record["department"], f"{item_id} status changed to {status} by the Dean", record["category"], session["username"], kind, item_id, event_type)
-        else:
-            if record["department"] != session.get("department"):
-                return jsonify(error="You can edit only your department records."), 403
-
-            priority = data.get("priority", "")
-            if priority not in ALLOWED_PRIORITY:
-                return jsonify(error="Invalid priority."), 400
-
-            if kind == "complaints":
-                subject = str(data.get("subject", "")).strip()
-                category = str(data.get("category", "Other")).strip()
-                description = str(data.get("description", "")).strip()
-                if not subject or not description:
-                    return jsonify(error="Subject and description are required."), 400
-                connection.execute(
-                    "UPDATE complaints SET subject=?, category=?, priority=?, description=? WHERE id=?",
-                    (subject, category, priority, description, item_id),
-                )
+        if not may_edit(record):
+            return jsonify(error="Only the creator of this entry or the Dean can edit it."), 403
+        dean = session.get("role") == "Dean"
+        try:
+            if table == "pio_reports":
+                category, report_type, title, details, report_date, reminder_date, recipient = validated_pio(data, record)
+                connection.execute("UPDATE pio_reports SET category=?,report_type=?,title=?,details=?,report_date=?,reminder_date=?,recipient=? WHERE id=?", (category, report_type, title, details, report_date, reminder_date, recipient, item_id))
             else:
-                item = str(data.get("item", "")).strip()
                 category = str(data.get("category", record["category"] or "Other")).strip()
-                reason = str(data.get("reason", "")).strip()
-                try:
-                    quantity = int(data.get("quantity", 0))
-                except (TypeError, ValueError):
-                    quantity = 0
-                if category not in MANAGEMENT_CATEGORIES or not item or not reason or quantity < 1:
-                    return jsonify(error="Item, quantity and reason are required."), 400
-                connection.execute(
-                    "UPDATE inventory SET item=?, category=?, quantity=?, priority=?, reason=? WHERE id=?",
-                    (item, category, quantity, priority, reason, item_id),
-                )
-            notify_related(connection, record["department"], f"{item_id} was updated by {session.get('name', session['username'])}", category, session["username"], kind, item_id, "update")
-
+                priority = data.get("priority", record["priority"])
+                if category not in MANAGEMENT_CATEGORIES or priority not in ALLOWED_PRIORITY:
+                    raise ValueError("Select a valid category and priority.")
+                if table == "complaints":
+                    subject = str(data.get("subject", record["subject"])).strip()
+                    description = str(data.get("description", record["description"])).strip()
+                    if not subject or not description:
+                        raise ValueError("Subject and description are required.")
+                    connection.execute("UPDATE complaints SET subject=?,category=?,priority=?,description=? WHERE id=?", (subject, category, priority, description, item_id))
+                else:
+                    item = str(data.get("item", record["item"])).strip()
+                    reason = str(data.get("reason", record["reason"])).strip()
+                    quantity = int(data.get("quantity", record["quantity"]))
+                    if not item or not reason or quantity < 1:
+                        raise ValueError("Item, quantity and reason are required.")
+                    connection.execute("UPDATE inventory SET item=?,category=?,quantity=?,priority=?,reason=? WHERE id=?", (item, category, quantity, priority, reason, item_id))
+            status = data.get("status", record["status"]) if dean else record["status"]
+            allowed = ALLOWED_STATUS | ({"Scheduled"} if table == "pio_reports" else set())
+            if status not in allowed:
+                raise ValueError("Invalid status.")
+            completed = status in {"Completed", "Resolved"}
+            # Editing archived content never silently restores or rewrites its archive history.
+            archive = bool(record["archived"]) or completed
+            reason = record["archive_reason"] if record["archived"] else ("Completed" if completed else "")
+            timestamp = record["archived_at"] if record["archived"] else (datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d/%m/%Y, %I:%M %p") if completed else "")
+            if table == "pio_reports":
+                connection.execute("UPDATE pio_reports SET status=?,archived=?,archive_reason=?,archived_at=? WHERE id=?", (status, int(archive), reason, timestamp, item_id))
+            else:
+                remarks = str(data.get("remarks", record["remarks"])).strip() if dean else record["remarks"]
+                connection.execute(f"UPDATE {table} SET status=?,remarks=?,archived=?,archive_reason=?,archived_at=? WHERE id=?", (status, remarks, int(archive), reason, timestamp, item_id))
+        except (ValueError, TypeError) as error:
+            connection.rollback()
+            return jsonify(error=str(error)), 400
+        event = "completed" if completed and not record["archived"] else ("status" if status != record["status"] else "update")
+        notify_related(connection, record["department"], f"{item_id} updated by {session.get('name', session['username'])}", category, session["username"], "pio" if table == "pio_reports" else table, item_id, event)
     return jsonify(ok=True, message="Record updated successfully.")
 
 
 @app.delete("/api/<kind>/<item_id>")
 @login_required
 def delete_record(kind, item_id):
-    if kind not in {"complaints", "inventory"}:
+    table = {"complaints": "complaints", "inventory": "inventory", "pio": "pio_reports", "pio-reports": "pio_reports"}.get(kind)
+    if not table:
         return jsonify(error="Invalid record type."), 400
     with db() as connection:
-        record = connection.execute(f"SELECT * FROM {kind} WHERE id=?", (item_id,)).fetchone()
+        record = connection.execute(f"SELECT * FROM {table} WHERE id=?", (item_id,)).fetchone()
         if not record:
             return jsonify(error="Record not found."), 404
-        if session.get("role") != "Dean" and record["department"] != session.get("department"):
-            return jsonify(error="You can delete only your department records."), 403
+        if not may_edit(record):
+            return jsonify(error="Only the creator of this entry or the Dean can delete it."), 403
+        if record["archived"]:
+            return jsonify(error="This record is already archived."), 409
         archived_at = datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%d/%m/%Y, %I:%M %p")
-        connection.execute(
-            f"UPDATE {kind} SET archived=1, archive_reason='Deleted', archived_at=? WHERE id=?",
-            (archived_at, item_id),
-        )
-        notify_related(connection, record["department"], f"{item_id} was deleted and moved to Archives by {session.get('name', session['username'])}", record["category"], session["username"], kind, item_id, "deleted")
+        connection.execute(f"UPDATE {table} SET archived=1,archive_reason='Deleted',archived_at=? WHERE id=?", (archived_at, item_id))
+        notify_related(connection, record["department"], f"{item_id} moved to Archives by {session.get('name', session['username'])}", record["category"], session["username"], "pio" if table == "pio_reports" else table, item_id, "deleted")
     return jsonify(ok=True, message="Record moved to Archives.")
 
 

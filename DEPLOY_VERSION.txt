@@ -1,13 +1,2 @@
-College ERP PIO Reporting Update
-Version: 2026-10-02
-
-Includes Civil/Electrical PIO reports, calendar and demand filters,
-Dean-only CSV/PDF downloads, letterhead fields, notifications,
-Gujarati labels, and responsive interface improvements.
-Adds saved font-size and font-weight accessibility preferences in Settings.
-Adds premium boxed UI, responsive motion, 15/30/60/custom report periods,
-live notification polling, and Dean/department notification routing.
-Adds sender-excluded category management alerts, clickable colour-coded
-notifications, and unified PDF/CSV downloads for complaints, inventory and PIO.
-UI redesign: Maison UI v2.0 (splash, login, dark/light theme, command palette).
-Adds quick Download buttons, download panel first on Reports, notification colour legend, 2-up stat boxes and full-width bottom navigation on phones.
+20261007-home-live-clock
+Blue/light/dark dashboard; native add and edit dialogs; creator-or-Dean editing; text-only font sizing; professional home effects and live local clock.

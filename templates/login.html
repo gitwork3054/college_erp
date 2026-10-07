@@ -1,30 +1,13 @@
-<!doctype html>
-<html lang="en" data-theme="dark">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>College ERP | Secure Login</title>
-  <script>try{var d=document.documentElement;d.dataset.theme=localStorage.getItem('erpTheme')||'dark';if(sessionStorage.getItem('erpSplash'))d.classList.add('nosplash')}catch(e){}</script>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Noto+Sans+Gujarati:wght@400;600;700&family=Noto+Serif+Gujarati:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='20261005-maison-ui') }}">
-</head>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>College ERP | Secure Login</title>
+<link rel="stylesheet" href="{{ url_for('static',filename='style.css',v='20261007-blue-login-compact') }}"><link rel="stylesheet" href="{{ url_for('static',filename='login.css',v='20261007-blue-login-compact') }}"><link rel="stylesheet" href="{{ url_for('static',filename='intro.css',v='20261007-blue-login-compact') }}">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('erpTheme')||'light';if(sessionStorage.getItem('erpBlueIntroPlayed')==='1')document.documentElement.classList.add('intro-seen')}catch(e){}</script><noscript><style>.erp-intro{display:none}</style></noscript></head>
 <body class="login-page">
   <!-- Opening logo animation -->
-  <div id="splash" aria-hidden="true">
-    <div class="sp-glow"></div>
-    <div class="sp-stage">
-      <svg class="sp-ring" viewBox="0 0 220 220"><defs><linearGradient id="spg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3dfb2"/><stop offset=".5" stop-color="#ff4d6d"/><stop offset="1" stop-color="#d9b46c"/></linearGradient></defs><circle cx="110" cy="110" r="104" pathLength="1"/></svg>
-      <img class="sp-logo" src="{{ url_for('static', filename='logo.jpg') }}" alt="">
-    </div>
-    <h2 class="sp-title">COLLEGE ERP</h2>
-    <p class="sp-sub">Life-Line · Health Technology &amp; Allied Sciences</p>
-    <div class="sp-bar"><i></i></div>
-    <span class="sp-skip">Click to skip</span>
+  <div class="erp-intro" id="erp-intro" role="region" aria-label="College ERP welcome">
+    <div class="intro-content"><div class="intro-orbit"><img src="{{ url_for('static',filename='logo.jpg') }}" alt="College logo"></div><h1 class="intro-title">COLLEGE ERP</h1><p class="intro-subtitle">Life-Line · Health Technology &amp; Allied Sciences</p><div class="intro-progress" aria-hidden="true"><span></span></div></div>
+    <button class="intro-skip" type="button">Skip introduction</button>
   </div>
-
-  <button type="button" class="icon-btn theme-float rise" id="theme-toggle" style="--i:6" aria-label="Toggle light or dark mode"></button>
-
+  <div class="login-theme-controls" role="group" aria-label="Appearance"><button type="button" data-login-theme="light">☀ Light</button><button type="button" data-login-theme="dark">☾ Dark</button></div>
   <main class="login-shell">
     <section class="brand-panel">
       <canvas id="fx"></canvas>
@@ -81,6 +64,6 @@
       else localStorage.removeItem('collegeErpUsername');
     });
   </script>
-  <script src="{{ url_for('static', filename='premium.js', v='20261005-maison-ui') }}"></script>
+  <script src="{{ url_for('static',filename='login-effects.js',v='20261007-blue-login-compact') }}"></script><script src="{{ url_for('static',filename='intro.js',v='20261007-blue-login-compact') }}"></script>
 </body>
 </html>
